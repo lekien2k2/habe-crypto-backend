@@ -108,10 +108,12 @@ class StorageService:
             "Body": data,
         }
 
-        # Store metadata as S3 object metadata (not tags - tags have character restrictions)
+        # Store metadata as S3 object metadata (ASCII-safe via URL encoding)
         if metadata:
+            import urllib.parse
             put_kwargs["Metadata"] = {
-                k: str(v)[:256] for k, v in metadata.items() if v is not None
+                k: urllib.parse.quote(str(v), safe='')[:256]
+                for k, v in metadata.items() if v is not None
             }
 
         try:
