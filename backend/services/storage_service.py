@@ -108,15 +108,11 @@ class StorageService:
             "Body": data,
         }
 
-        # Store metadata as S3 object tagging
+        # Store metadata as S3 object metadata (not tags - tags have character restrictions)
         if metadata:
-            import urllib.parse
-            tag_set = "&".join(
-                f"{urllib.parse.quote_plus(k)}={urllib.parse.quote_plus(str(v))}"
-                for k, v in metadata.items() if v is not None
-            )
-            if tag_set:
-                put_kwargs["Tagging"] = tag_set
+            put_kwargs["Metadata"] = {
+                k: str(v)[:256] for k, v in metadata.items() if v is not None
+            }
 
         try:
             self._client.put_object(**put_kwargs)
