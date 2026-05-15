@@ -51,8 +51,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy PBC shared library from builder
 COPY --from=builder /usr/local/lib/libpbc* /usr/local/lib/
 
-# Copy installed Python packages from builder
+# Copy installed Python packages and executables from builder
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Update linker cache
 RUN ldconfig
