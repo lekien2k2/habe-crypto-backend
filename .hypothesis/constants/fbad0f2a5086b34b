@@ -1,0 +1,4 @@
+# file: C:\Users\Asus\OneDrive - datphannguyenle\hoctap\thacsi\CyberSecurity\crypto_module\core.py
+# hypothesis_version: 6.151.12
+
+['(', ')', 'SS512', 'abe_ciphertext', 'aes_ciphertext', 'aes_iv', 'attribute', 'hmac', 'invalid', 'original_size', 'parse', 'policy']

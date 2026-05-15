@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "habe-crypto-backend"
+version = "0.1.0"
+description = "Hierarchical Attribute-Based Encryption (HABE) system with CP-ABE crypto module and FastAPI backend API"
+authors = ["HABE Team"]
+readme = "README.md"
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+charm-crypto = "^0.50"
+fastapi = "^0.104.0"
+uvicorn = {version = "^0.24.0", extras = ["standard"]}
+boto3 = "^1.29.0"
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+python-multipart = "^0.0.6"
+msgpack = "^1.0.7"
+pycryptodome = "^3.19.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-asyncio = "^0.23.0"
+hypothesis = "^6.92.0"
+moto = {version = "^4.2.0", extras = ["s3"]}
+httpx = "^0.25.0"
+coverage = "^7.3.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.coverage.run]
+source = ["crypto_module", "backend"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

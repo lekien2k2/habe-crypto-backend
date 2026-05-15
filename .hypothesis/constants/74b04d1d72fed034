@@ -1,0 +1,4 @@
+# file: C:\Users\Asus\OneDrive - datphannguyenle\hoctap\thacsi\CyberSecurity\backend\routers\health.py
+# hypothesis_version: 6.151.12
+
+['/health', 'degraded', 'healthy', 'unhealthy']

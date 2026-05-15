@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  # ─────────────────────────────────────────────
+  # LocalStack - AWS S3 Mock
+  # ─────────────────────────────────────────────
+  localstack:
+    image: localstack/localstack:3.0
+    container_name: habe-localstack
+    ports:
+      - "4566:4566"       # LocalStack Gateway
+      - "4510-4559:4510-4559"  # External services
+    environment:
+      - SERVICES=s3
+      - DEBUG=0
+      - AWS_DEFAULT_REGION=us-east-1
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./scripts/init-localstack.sh:/etc/localstack/init/ready.d/init.sh
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────
+  # HABE Crypto Backend API
+  # ─────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: habe-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - S3_BUCKET_STANDARD=habe-standard-storage
+      - S3_BUCKET_ARCHIVE=habe-archive-storage
+      - AWS_REGION=us-east-1
+      - MAX_FILE_SIZE_MB=100
+      - CORS_ORIGINS=["*"]
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_ENDPOINT_URL=http://localstack:4566
+    depends_on:
+      localstack:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  localstack_data:

@@ -1,0 +1,4 @@
+# file: C:\Users\Asus\OneDrive - datphannguyenle\hoctap\thacsi\CyberSecurity\crypto_module\serialization.py
+# hypothesis_version: 6.151.12
+
+['CP-ABE-BSW07', 'CP-ABE-BSW07-HYBRID', 'abe_ciphertext', 'access_policy', 'aes_ciphertext', 'aes_iv', 'group', 'hmac', 'key_data', 'metadata', 'scheme', 'utf-8', 'version']

@@ -1,0 +1,4 @@
+# file: C:\Users\Asus\OneDrive - datphannguyenle\hoctap\thacsi\CyberSecurity\backend\exceptions.py
+# hypothesis_version: 6.151.12
+
+[400, 403, 404, 500, 503, 'ACCESS_DENIED', 'CRYPTO_ERROR', 'CRYPTO_KEYGEN_FAILED', 'CRYPTO_SETUP_FAILED', 'Decryption failed', 'Encryption failed', 'FILE_NOT_FOUND', 'INTERNAL_ERROR', 'INVALID_ATTRIBUTES', 'INVALID_CIPHERTEXT', 'INVALID_POLICY', 'S3_UNAVAILABLE', 'error_code', 'message', 'timestamp']

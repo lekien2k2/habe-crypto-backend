@@ -1,0 +1,4 @@
+# file: C:\Users\Asus\OneDrive - datphannguyenle\hoctap\thacsi\CyberSecurity\backend\routers\files.py
+# hypothesis_version: 6.151.12
+
+[401, 403, 404, 413, 1024, '/files', '/upload', '/{file_id}', 'Content-Disposition', 'File not found', 'access_policy', 'content_type', 'encrypted_at', 'files', 'original_filename', 'standard', 'unknown']

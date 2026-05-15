@@ -1,0 +1,4 @@
+# file: C:\Users\Asus\OneDrive - datphannguyenle\hoctap\thacsi\CyberSecurity\backend\config.py
+# hypothesis_version: 6.151.12
+
+[100, '*', '.env', 'AWS region', 'Allowed CORS origins', 'habe-archive-storage', 'us-east-1', 'utf-8']
