@@ -1,5 +1,7 @@
 # Main dependencies
 # charm-crypto is installed from source in Dockerfile (not available on PyPI)
+# pyparsing is required by charm-crypto's policy parser
+pyparsing==3.1.1
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 boto3==1.29.7
