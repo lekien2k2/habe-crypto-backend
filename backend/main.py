@@ -9,6 +9,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 
 from backend.config import settings
 from backend.exceptions import register_exception_handlers
@@ -49,3 +52,12 @@ app.include_router(files.router)
 
 # Register global exception handlers
 register_exception_handlers(app)
+
+# Serve frontend static files
+frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
+if os.path.isdir(frontend_dir):
+    @app.get("/")
+    async def serve_index():
+        return FileResponse(os.path.join(frontend_dir, "index.html"))
+
+    app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
