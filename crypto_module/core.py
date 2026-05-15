@@ -190,10 +190,19 @@ class HABECrypto:
                     "ABE encryption returned None - policy may be invalid"
                 )
 
-            # Serialize the ABE ciphertext using pickle (Charm dicts contain
-            # mixed types that objectToBytes can't handle directly)
-            import pickle
-            abe_ct_bytes = pickle.dumps(abe_ct)
+            # Serialize the ABE ciphertext dict element by element
+            # Charm's ABE ciphertext is a dict with pairing elements + metadata
+            abe_ct_serialized = {}
+            for key, value in abe_ct.items():
+                try:
+                    # Try to serialize as a pairing group element
+                    abe_ct_serialized[key] = self.group.serialize(value)
+                except (TypeError, AttributeError):
+                    # Non-element values (strings, ints, etc.) store as-is
+                    abe_ct_serialized[key] = value
+
+            import json
+            abe_ct_bytes = json.dumps(abe_ct_serialized, default=str).encode('utf-8')
 
             # Step 3: AES-CBC encrypt the plaintext
             iv = os.urandom(16)
@@ -305,8 +314,18 @@ class HABECrypto:
             usk = deserialize_key(user_secret_key, self.group)
 
             # Step 2: Deserialize the ABE ciphertext and ABE-decrypt
-            import pickle
-            abe_ct = pickle.loads(bundle["abe_ciphertext"])
+            import json
+            abe_ct_serialized = json.loads(bundle["abe_ciphertext"].decode('utf-8'))
+            abe_ct = {}
+            for key, value in abe_ct_serialized.items():
+                try:
+                    # Try to deserialize as a pairing group element
+                    if isinstance(value, str) and len(value) > 0:
+                        abe_ct[key] = self.group.deserialize(value.encode('utf-8'))
+                    else:
+                        abe_ct[key] = value
+                except (TypeError, ValueError, Exception):
+                    abe_ct[key] = value
 
             # ABE-decrypt to recover the GT element
             key_element = self.cpabe.decrypt(mpk, usk, abe_ct)
