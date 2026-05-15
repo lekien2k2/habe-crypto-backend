@@ -106,7 +106,7 @@ def run_standalone_demo():
     print()
 
     # User 1: Manager of Department A
-    attrs_manager = ["COMPANY", "DEPT_A", "MANAGER"]
+    attrs_manager = ["COMPANY", "DEPTA", "MANAGER"]
     print_info(f"User 1 (Manager Dept A): attributes = {attrs_manager}")
     start = time.time()
     usk_manager = crypto.keygen(mpk_bytes, msk_bytes, attrs_manager)
@@ -116,7 +116,7 @@ def run_standalone_demo():
     print()
 
     # User 2: Employee of Department B
-    attrs_employee = ["COMPANY", "DEPT_B", "EMPLOYEE"]
+    attrs_employee = ["COMPANY", "DEPTB", "EMPLOYEE"]
     print_info(f"User 2 (Employee Dept B): attributes = {attrs_employee}")
     start = time.time()
     usk_employee = crypto.keygen(mpk_bytes, msk_bytes, attrs_employee)
@@ -126,7 +126,7 @@ def run_standalone_demo():
     print()
 
     # User 3: Admin (has all access)
-    attrs_admin = ["COMPANY", "DEPT_A", "DEPT_B", "ADMIN", "MANAGER"]
+    attrs_admin = ["COMPANY", "DEPTA", "DEPTB", "ADMIN", "MANAGER"]
     print_info(f"User 3 (Admin): attributes = {attrs_admin}")
     start = time.time()
     usk_admin = crypto.keygen(mpk_bytes, msk_bytes, attrs_admin)
@@ -143,7 +143,7 @@ def run_standalone_demo():
     plaintext = b"[CONFIDENTIAL] Bao cao tai chinh Quy 4/2024 - Department A\n" \
                 b"Doanh thu: 15.2 ty VND | Loi nhuan: 3.8 ty VND\n" \
                 b"Chi tiet xem file dinh kem."
-    access_policy = "MANAGER AND DEPT_A"
+    access_policy = "MANAGER and DEPTA"
 
     print_info(f"Plaintext: {len(plaintext)} bytes")
     print_info(f"Access Policy: \"{access_policy}\"")
@@ -167,7 +167,7 @@ def run_standalone_demo():
     print_info("User 1 (Manager Dept A) giải mã...")
     print_info(f"  Attributes: {attrs_manager}")
     print_info(f"  Policy cần: \"{access_policy}\"")
-    print_info(f"  Thỏa mãn? MANAGER ∈ attrs ✓, DEPT_A ∈ attrs ✓")
+    print_info(f"  Thỏa mãn? MANAGER ∈ attrs ✓, DEPTA ∈ attrs ✓")
     start = time.time()
     decrypted = crypto.decrypt(mpk_bytes, usk_manager, ciphertext)
     elapsed = time.time() - start
@@ -181,7 +181,7 @@ def run_standalone_demo():
     # Admin (has MANAGER AND DEPT_A among others) → should succeed
     print_info("User 3 (Admin) giải mã...")
     print_info(f"  Attributes: {attrs_admin}")
-    print_info(f"  Thỏa mãn? MANAGER ∈ attrs ✓, DEPT_A ∈ attrs ✓")
+    print_info(f"  Thỏa mãn? MANAGER ∈ attrs ✓, DEPTA ∈ attrs ✓")
     start = time.time()
     decrypted_admin = crypto.decrypt(mpk_bytes, usk_admin, ciphertext)
     elapsed = time.time() - start
@@ -198,7 +198,7 @@ def run_standalone_demo():
     print_info("User 2 (Employee Dept B) thử giải mã...")
     print_info(f"  Attributes: {attrs_employee}")
     print_info(f"  Policy cần: \"{access_policy}\"")
-    print_info(f"  Thỏa mãn? MANAGER ∉ attrs ✗, DEPT_A ∉ attrs ✗")
+    print_info(f"  Thỏa mãn? MANAGER ∉ attrs ✗, DEPTA ∉ attrs ✗")
 
     try:
         crypto.decrypt(mpk_bytes, usk_employee, ciphertext)
@@ -212,7 +212,7 @@ def run_standalone_demo():
     print_step(6, "COMPLEX POLICY — Chính sách phức tạp (OR)")
     print()
 
-    complex_policy = "(MANAGER AND DEPT_A) OR ADMIN"
+    complex_policy = "(MANAGER and DEPTA) or ADMIN"
     print_info(f"Policy: \"{complex_policy}\"")
     print_info("Cho phép: Manager của Dept A HOẶC Admin")
     print()

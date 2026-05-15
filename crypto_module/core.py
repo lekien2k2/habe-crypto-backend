@@ -166,7 +166,6 @@ class HABECrypto:
             mpk = deserialize_key(master_public_key, self.group)
 
             # Step 1: Generate a random GT element and derive AES key from it
-            # Strategy: encrypt a random GT element, derive AES key from it
             key_element = self.group.random(GT)
 
             # Derive AES key from the group element
@@ -179,14 +178,22 @@ class HABECrypto:
             except Exception as e:
                 error_msg = str(e).lower()
                 if ("policy" in error_msg or "parse" in error_msg
-                        or "invalid" in error_msg or "attribute" in error_msg):
+                        or "invalid" in error_msg or "attribute" in error_msg
+                        or "literal" in error_msg):
                     raise InvalidPolicyError(
                         f"Access policy is invalid: {e}"
                     ) from e
                 raise
 
-            # Serialize the ABE ciphertext
-            abe_ct_bytes = objectToBytes(abe_ct, self.group)
+            if abe_ct is None or abe_ct is False:
+                raise InvalidPolicyError(
+                    "ABE encryption returned None - policy may be invalid"
+                )
+
+            # Serialize the ABE ciphertext using pickle (Charm dicts contain
+            # mixed types that objectToBytes can't handle directly)
+            import pickle
+            abe_ct_bytes = pickle.dumps(abe_ct)
 
             # Step 3: AES-CBC encrypt the plaintext
             iv = os.urandom(16)
@@ -298,7 +305,8 @@ class HABECrypto:
             usk = deserialize_key(user_secret_key, self.group)
 
             # Step 2: Deserialize the ABE ciphertext and ABE-decrypt
-            abe_ct = bytesToObject(bundle["abe_ciphertext"], self.group)
+            import pickle
+            abe_ct = pickle.loads(bundle["abe_ciphertext"])
 
             # ABE-decrypt to recover the GT element
             key_element = self.cpabe.decrypt(mpk, usk, abe_ct)
