@@ -1,5 +1,5 @@
 # Main dependencies
-charm-crypto==0.50
+# charm-crypto is installed from source in Dockerfile (not available on PyPI)
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 boto3==1.29.7
