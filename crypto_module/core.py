@@ -10,7 +10,7 @@ import os
 from typing import Tuple
 
 from charm.core.engine.util import objectToBytes, bytesToObject
-from charm.toolbox.pairinggroup import PairingGroup
+from charm.toolbox.pairinggroup import PairingGroup, GT
 from charm.schemes.abenc.abenc_bsw07 import CPabe_BSW07
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
@@ -165,17 +165,9 @@ class HABECrypto:
             # Deserialize the master public key
             mpk = deserialize_key(master_public_key, self.group)
 
-            # Step 1: Generate a random 32-byte AES-256 key
-            aes_key = os.urandom(32)
-
-            # Step 2: ABE-encrypt the AES key under the access policy
-            # Encode the AES key as a group element message for ABE encryption
-            # We encrypt the raw key bytes as a pairing group element
-            key_element = self.group.random()
-            # Derive the AES key from the group element instead, so we can
-            # recover it after ABE decryption
+            # Step 1: Generate a random GT element and derive AES key from it
             # Strategy: encrypt a random GT element, derive AES key from it
-            key_element = self.group.random(target_type=self.group.GT)
+            key_element = self.group.random(GT)
 
             # Derive AES key from the group element
             element_bytes = objectToBytes(key_element, self.group)
