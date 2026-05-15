@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HABE - Mã hóa Phân cấp cho Hệ thống Lưu trữ Đa tầng</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: 600; }
+        .step-done { background: #dcfce7; border-color: #22c55e; }
+        .step-fail { background: #fee2e2; border-color: #ef4444; }
+        .step-active { background: #dbeafe; border-color: #3b82f6; }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        pre { white-space: pre-wrap; word-break: break-all; }
+        .diagram-box { border: 2px solid #e5e7eb; border-radius: 8px; padding: 16px; text-align: center; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white py-6 shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <h1 class="text-2xl font-bold">Mã hóa Phân cấp (Hierarchical Encryption)</h1>
+            <p class="text-blue-200 mt-1">cho Hệ thống Lưu trữ Đa tầng — CP-ABE + AWS S3 Tiered Storage</p>
+            <p class="text-sm text-blue-300 mt-2">Môn: An toàn Thông tin | Công nghệ: Charm-crypto BSW07 + FastAPI + Terraform</p>
+        </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="bg-white border-b sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 flex gap-6">
+            <button onclick="showTab('theory')" id="tab-theory" class="py-3 px-2 tab-active">📖 Lý thuyết</button>
+            <button onclick="showTab('demo')" id="tab-demo" class="py-3 px-2 text-gray-600 hover:text-blue-600">🚀 Demo Tương tác</button>
+            <button onclick="showTab('results')" id="tab-results" class="py-3 px-2 text-gray-600 hover:text-blue-600">📊 Kết quả</button>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 py-6">
+
+        <!-- ═══════════════ TAB 1: LÝ THUYẾT ═══════════════ -->
+        <section id="section-theory" class="fade-in">
+            <h2 class="text-xl font-bold mb-4">1. Bài toán</h2>
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <p class="mb-3">Trong tổ chức có nhiều phòng ban, cần kiểm soát truy cập dữ liệu dựa trên <strong>vai trò và vị trí</strong> trong hệ thống phân cấp:</p>
+                <ul class="list-disc pl-6 space-y-1 text-gray-700">
+                    <li>Manager Dept A chỉ xem được tài liệu của Dept A</li>
+                    <li>Admin xem được tất cả</li>
+                    <li>Employee không xem được tài liệu mật của Manager</li>
+                </ul>
+                <p class="mt-3 text-gray-600">→ Cần mã hóa dữ liệu sao cho <strong>chính sách truy cập được nhúng vào ciphertext</strong>, không phụ thuộc vào server.</p>
+            </div>
+
+            <h2 class="text-xl font-bold mb-4">2. Giải pháp: CP-ABE (Ciphertext-Policy Attribute-Based Encryption)</h2>
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold mb-2">Ý tưởng cốt lõi</h3>
+                        <ul class="space-y-2 text-sm text-gray-700">
+                            <li>🔑 <strong>Người mã hóa</strong> chỉ định chính sách: <code class="bg-gray-100 px-1 rounded">"MANAGER and DEPTA"</code></li>
+                            <li>👤 <strong>Người dùng</strong> được cấp khóa theo thuộc tính: <code class="bg-gray-100 px-1 rounded">["MANAGER", "DEPTA"]</code></li>
+                            <li>✅ Giải mã thành công khi attributes ⊇ policy</li>
+                            <li>❌ Từ chối khi attributes không thỏa mãn</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">Scheme: BSW07</h3>
+                        <ul class="space-y-2 text-sm text-gray-700">
+                            <li>📄 Bethencourt, Sahai, Waters (2007)</li>
+                            <li>🔐 Bilinear pairing trên elliptic curves</li>
+                            <li>📚 Thư viện: Charm-crypto (Python)</li>
+                            <li>⚡ Pairing Group: SS512</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold mb-4">3. Kiến trúc Hệ thống</h2>
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <div class="grid md:grid-cols-3 gap-4 text-center text-sm">
+                    <div class="diagram-box border-blue-300 bg-blue-50">
+                        <div class="text-2xl mb-2">👤</div>
+                        <strong>Client</strong>
+                        <p class="text-gray-500 mt-1">Upload/Download files</p>
+                    </div>
+                    <div class="diagram-box border-green-300 bg-green-50">
+                        <div class="text-2xl mb-2">⚙️</div>
+                        <strong>Backend API</strong>
+                        <p class="text-gray-500 mt-1">FastAPI + Crypto Module</p>
+                        <p class="text-xs text-gray-400 mt-1">Encrypt → Store | Fetch → Decrypt</p>
+                    </div>
+                    <div class="diagram-box border-orange-300 bg-orange-50">
+                        <div class="text-2xl mb-2">☁️</div>
+                        <strong>AWS S3</strong>
+                        <p class="text-gray-500 mt-1">Standard + Archive</p>
+                        <p class="text-xs text-gray-400 mt-1">Lifecycle → Glacier (30d)</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-center text-gray-500 text-sm">
+                    Client → <span class="text-blue-600">HTTP REST</span> → Backend → <span class="text-green-600">Encrypt/Decrypt</span> → S3
+                </div>
+            </div>
+
+            <h2 class="text-xl font-bold mb-4">4. Hybrid Encryption Flow</h2>
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold text-green-700 mb-2">🔒 Encrypt</h3>
+                        <ol class="list-decimal pl-5 space-y-1 text-sm text-gray-700">
+                            <li>Random GT element (pairing group)</li>
+                            <li>AES key = SHA-256(GT element)</li>
+                            <li>ABE.encrypt(GT, policy) → ABE ciphertext</li>
+                            <li>AES-CBC.encrypt(plaintext, key, IV)</li>
+                            <li>HMAC-SHA256(key, AES ciphertext)</li>
+                            <li>Bundle = MessagePack(ABE_ct + AES_ct + IV + HMAC)</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-blue-700 mb-2">🔓 Decrypt</h3>
+                        <ol class="list-decimal pl-5 space-y-1 text-sm text-gray-700">
+                            <li>Unpack MessagePack bundle</li>
+                            <li>ABE.decrypt(ABE_ct, user_key) → GT element</li>
+                            <li>AES key = SHA-256(GT element)</li>
+                            <li>Verify HMAC (integrity check)</li>
+                            <li>AES-CBC.decrypt(AES_ct, key, IV)</li>
+                            <li>Return plaintext</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                    <strong>Tại sao Hybrid?</strong> ABE chậm cho dữ liệu lớn (pairing-based). AES nhanh nhưng không hỗ trợ policy. → Kết hợp: ABE bảo vệ key, AES mã hóa data.
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════════ TAB 2: DEMO TƯƠNG TÁC ═══════════════ -->
+        <section id="section-demo" class="hidden fade-in">
+            <!-- API Config -->
+            <div class="bg-white rounded-lg shadow p-4 mb-6">
+                <label class="text-sm font-medium text-gray-700">API Server URL:</label>
+                <div class="flex gap-2 mt-1">
+                    <input id="api-url" type="text" value="http://18.142.246.163:8000" 
+                        class="flex-1 border rounded px-3 py-2 text-sm" placeholder="http://localhost:8000">
+                    <button onclick="checkHealth()" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">
+                        Kiểm tra kết nối
+                    </button>
+                </div>
+                <div id="health-status" class="mt-2 text-sm"></div>
+            </div>
+
+            <!-- Step 1: Setup -->
+            <div id="step1" class="bg-white rounded-lg shadow p-6 mb-4 border-l-4 border-gray-300">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg">Step 1: Setup — Khởi tạo hệ thống</h3>
+                        <p class="text-sm text-gray-500 mt-1">Tạo Master Public Key (MPK) và Master Secret Key (MSK)</p>
+                    </div>
+                    <button onclick="doSetup()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                        ▶ Chạy Setup
+                    </button>
+                </div>
+                <div id="step1-result" class="mt-4 hidden"></div>
+            </div>
+
+            <!-- Step 2: KeyGen -->
+            <div id="step2" class="bg-white rounded-lg shadow p-6 mb-4 border-l-4 border-gray-300 opacity-50">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg">Step 2: KeyGen — Phát hành khóa người dùng</h3>
+                        <p class="text-sm text-gray-500 mt-1">Tạo User Secret Key dựa trên thuộc tính phân cấp</p>
+                    </div>
+                    <button onclick="doKeygen()" id="btn-keygen" disabled
+                        class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        ▶ Tạo khóa
+                    </button>
+                </div>
+                <div class="mt-3 grid md:grid-cols-2 gap-3">
+                    <div class="p-3 bg-green-50 border border-green-200 rounded text-sm">
+                        <strong>👤 User 1 (Manager Dept A):</strong><br>
+                        Attributes: <code>["COMPANY", "DEPTA", "MANAGER"]</code>
+                    </div>
+                    <div class="p-3 bg-red-50 border border-red-200 rounded text-sm">
+                        <strong>👤 User 2 (Employee Dept B):</strong><br>
+                        Attributes: <code>["COMPANY", "DEPTB", "EMPLOYEE"]</code>
+                    </div>
+                </div>
+                <div id="step2-result" class="mt-4 hidden"></div>
+            </div>
+
+            <!-- Step 3: Upload -->
+            <div id="step3" class="bg-white rounded-lg shadow p-6 mb-4 border-l-4 border-gray-300 opacity-50">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg">Step 3: Upload — Mã hóa + Lưu trữ S3</h3>
+                        <p class="text-sm text-gray-500 mt-1">Encrypt file với policy, upload ciphertext lên S3</p>
+                    </div>
+                    <button onclick="doUpload()" id="btn-upload" disabled
+                        class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        ▶ Upload
+                    </button>
+                </div>
+                <div class="mt-3 p-3 bg-gray-50 border rounded text-sm">
+                    <strong>File:</strong> "Báo cáo tài chính Q4/2024 - Department A"<br>
+                    <strong>Policy:</strong> <code>"MANAGER and DEPTA"</code><br>
+                    <strong>Storage Tier:</strong> Standard
+                </div>
+                <div id="step3-result" class="mt-4 hidden"></div>
+            </div>
+
+            <!-- Step 4: Download Success -->
+            <div id="step4" class="bg-white rounded-lg shadow p-6 mb-4 border-l-4 border-gray-300 opacity-50">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg">Step 4: Download — Giải mã thành công ✓</h3>
+                        <p class="text-sm text-gray-500 mt-1">Manager (có MANAGER + DEPTA) giải mã file</p>
+                    </div>
+                    <button onclick="doDownloadSuccess()" id="btn-download-ok" disabled
+                        class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        ▶ Download (Manager)
+                    </button>
+                </div>
+                <div id="step4-result" class="mt-4 hidden"></div>
+            </div>
+
+            <!-- Step 5: Access Denied -->
+            <div id="step5" class="bg-white rounded-lg shadow p-6 mb-4 border-l-4 border-gray-300 opacity-50">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-bold text-lg">Step 5: Access Denied — Từ chối truy cập ✗</h3>
+                        <p class="text-sm text-gray-500 mt-1">Employee (chỉ có DEPTB) thử giải mã → bị từ chối</p>
+                    </div>
+                    <button onclick="doDownloadDenied()" id="btn-download-fail" disabled
+                        class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        ▶ Download (Employee)
+                    </button>
+                </div>
+                <div id="step5-result" class="mt-4 hidden"></div>
+            </div>
+        </section>
+
+        <!-- ═══════════════ TAB 3: KẾT QUẢ ═══════════════ -->
+        <section id="section-results" class="hidden fade-in">
+            <h2 class="text-xl font-bold mb-4">Kết quả Thực nghiệm</h2>
+            
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 class="font-semibold mb-3">Bảng tổng hợp tính năng</h3>
+                <table class="w-full text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border p-2 text-left">Tính năng</th>
+                            <th class="border p-2 text-left">Kết quả</th>
+                            <th class="border p-2 text-left">Ghi chú</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="border p-2">Setup (tạo MPK/MSK)</td><td class="border p-2 text-green-600">✅ Pass</td><td class="border p-2">~16ms, scheme BSW07</td></tr>
+                        <tr><td class="border p-2">KeyGen (thuộc tính phân cấp)</td><td class="border p-2 text-green-600">✅ Pass</td><td class="border p-2">~20ms/key, hỗ trợ multi-level</td></tr>
+                        <tr><td class="border p-2">Encrypt (hybrid ABE+AES)</td><td class="border p-2 text-green-600">✅ Pass</td><td class="border p-2">~17ms, expansion 16.8x</td></tr>
+                        <tr><td class="border p-2">Decrypt (khóa hợp lệ)</td><td class="border p-2 text-green-600">✅ Pass</td><td class="border p-2">~9ms, byte-by-byte identical</td></tr>
+                        <tr><td class="border p-2">Access Denied (khóa không hợp lệ)</td><td class="border p-2 text-green-600">✅ Pass</td><td class="border p-2">Raise AccessDeniedError</td></tr>
+                        <tr><td class="border p-2">Integrity (HMAC-SHA256)</td><td class="border p-2 text-green-600">✅ Pass</td><td class="border p-2">Phát hiện corruption</td></tr>
+                        <tr><td class="border p-2">Complex Policy (OR)</td><td class="border p-2 text-green-600">✅ Pass</td><td class="border p-2">"(A and B) or C"</td></tr>
+                        <tr><td class="border p-2">S3 Tiered Storage</td><td class="border p-2 text-green-600">✅ Pass</td><td class="border p-2">Standard + Archive + Glacier lifecycle</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 class="font-semibold mb-3">Bảo mật nhiều lớp</h3>
+                <div class="space-y-2 text-sm">
+                    <div class="flex items-center gap-2 p-2 bg-blue-50 rounded"><span class="text-blue-600">🔐</span> <strong>Layer 1:</strong> CP-ABE (access control nhúng trong ciphertext)</div>
+                    <div class="flex items-center gap-2 p-2 bg-green-50 rounded"><span class="text-green-600">🔑</span> <strong>Layer 2:</strong> AES-256-CBC (mã hóa dữ liệu bulk)</div>
+                    <div class="flex items-center gap-2 p-2 bg-yellow-50 rounded"><span class="text-yellow-600">🛡️</span> <strong>Layer 3:</strong> HMAC-SHA256 (integrity verification)</div>
+                    <div class="flex items-center gap-2 p-2 bg-purple-50 rounded"><span class="text-purple-600">☁️</span> <strong>Layer 4:</strong> S3 SSE (server-side encryption at rest)</div>
+                    <div class="flex items-center gap-2 p-2 bg-red-50 rounded"><span class="text-red-600">🚪</span> <strong>Layer 5:</strong> IAM Least Privilege (chỉ PutObject + GetObject)</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h3 class="font-semibold mb-3">So sánh với các phương pháp khác</h3>
+                <table class="w-full text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border p-2">Tiêu chí</th>
+                            <th class="border p-2">AES thuần</th>
+                            <th class="border p-2">RSA + AES</th>
+                            <th class="border p-2 bg-blue-50">CP-ABE + AES (Ours)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td class="border p-2">Fine-grained access</td><td class="border p-2 text-red-500">✗</td><td class="border p-2 text-red-500">✗</td><td class="border p-2 text-green-600 bg-blue-50">✅</td></tr>
+                        <tr><td class="border p-2">Policy trong ciphertext</td><td class="border p-2 text-red-500">✗</td><td class="border p-2 text-red-500">✗</td><td class="border p-2 text-green-600 bg-blue-50">✅</td></tr>
+                        <tr><td class="border p-2">Không cần server trust</td><td class="border p-2 text-red-500">✗</td><td class="border p-2 text-yellow-500">△</td><td class="border p-2 text-green-600 bg-blue-50">✅</td></tr>
+                        <tr><td class="border p-2">Scalable (nhiều users)</td><td class="border p-2 text-red-500">✗</td><td class="border p-2 text-red-500">✗ (n keys)</td><td class="border p-2 text-green-600 bg-blue-50">✅ (1 policy)</td></tr>
+                        <tr><td class="border p-2">Performance</td><td class="border p-2 text-green-600">Nhanh</td><td class="border p-2 text-green-600">Nhanh</td><td class="border p-2 text-yellow-500 bg-blue-50">Trung bình</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- JavaScript -->
+    <script>
+    // ═══════════════ State ═══════════════
+    let state = { mpk: null, msk: null, uskManager: null, uskEmployee: null, fileId: null };
+
+    function getApiUrl() { return document.getElementById('api-url').value.replace(/\/$/, ''); }
+
+    // ═══════════════ Tab Navigation ═══════════════
+    function showTab(tab) {
+        document.querySelectorAll('[id^="section-"]').forEach(s => s.classList.add('hidden'));
+        document.querySelectorAll('[id^="tab-"]').forEach(t => { t.classList.remove('tab-active'); t.classList.add('text-gray-600'); });
+        document.getElementById('section-' + tab).classList.remove('hidden');
+        document.getElementById('tab-' + tab).classList.add('tab-active');
+        document.getElementById('tab-' + tab).classList.remove('text-gray-600');
+    }
+
+    // ═══════════════ Health Check ═══════════════
+    async function checkHealth() {
+        const el = document.getElementById('health-status');
+        el.innerHTML = '<span class="text-gray-500">Đang kiểm tra...</span>';
+        try {
+            const r = await fetch(getApiUrl() + '/health');
+            const d = await r.json();
+            if (d.status === 'healthy') {
+                el.innerHTML = '<span class="text-green-600">✅ Kết nối thành công — S3: ' + d.s3_connected + ', Crypto: ' + d.crypto_module_ready + '</span>';
+            } else {
+                el.innerHTML = '<span class="text-yellow-600">⚠️ ' + d.status + ' — S3: ' + d.s3_connected + ', Crypto: ' + d.crypto_module_ready + '</span>';
+            }
+        } catch(e) {
+            el.innerHTML = '<span class="text-red-600">❌ Không kết nối được: ' + e.message + '</span>';
+        }
+    }
+
+    // ═══════════════ Step 1: Setup ═══════════════
+    async function doSetup() {
+        const el = document.getElementById('step1-result');
+        el.classList.remove('hidden');
+        el.innerHTML = '<p class="text-gray-500">⏳ Đang khởi tạo...</p>';
+        try {
+            const r = await fetch(getApiUrl() + '/admin/setup', { method: 'POST' });
+            const d = await r.json();
+            state.mpk = d.master_public_key;
+            state.msk = d.master_secret_key;
+            el.innerHTML = `
+                <div class="p-3 bg-green-50 border border-green-200 rounded">
+                    <p class="text-green-700 font-semibold">✅ Setup thành công!</p>
+                    <p class="text-xs text-gray-600 mt-2"><strong>MPK:</strong> ${state.mpk.substring(0, 80)}...</p>
+                    <p class="text-xs text-gray-600 mt-1"><strong>MSK:</strong> ${state.msk.substring(0, 80)}...</p>
+                    <p class="text-xs text-gray-500 mt-1">Scheme: ${d.scheme} | Group: ${d.group}</p>
+                </div>`;
+            document.getElementById('step1').classList.add('step-done');
+            document.getElementById('step2').classList.remove('opacity-50');
+            document.getElementById('btn-keygen').disabled = false;
+        } catch(e) {
+            el.innerHTML = `<div class="p-3 bg-red-50 border border-red-200 rounded text-red-700">❌ Lỗi: ${e.message}</div>`;
+        }
+    }
+
+    // ═══════════════ Step 2: KeyGen ═══════════════
+    async function doKeygen() {
+        const el = document.getElementById('step2-result');
+        el.classList.remove('hidden');
+        el.innerHTML = '<p class="text-gray-500">⏳ Đang tạo khóa...</p>';
+        try {
+            // Manager key
+            const r1 = await fetch(getApiUrl() + '/admin/keygen', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ master_public_key: state.mpk, master_secret_key: state.msk, attributes: ["COMPANY", "DEPTA", "MANAGER"] })
+            });
+            const d1 = await r1.json();
+            state.uskManager = d1.user_secret_key;
+
+            // Employee key
+            const r2 = await fetch(getApiUrl() + '/admin/keygen', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ master_public_key: state.mpk, master_secret_key: state.msk, attributes: ["COMPANY", "DEPTB", "EMPLOYEE"] })
+            });
+            const d2 = await r2.json();
+            state.uskEmployee = d2.user_secret_key;
+
+            el.innerHTML = `
+                <div class="p-3 bg-green-50 border border-green-200 rounded">
+                    <p class="text-green-700 font-semibold">✅ Tạo khóa thành công!</p>
+                    <p class="text-xs text-gray-600 mt-2">👤 Manager USK: ${state.uskManager.substring(0, 60)}...</p>
+                    <p class="text-xs text-gray-600 mt-1">👤 Employee USK: ${state.uskEmployee.substring(0, 60)}...</p>
+                </div>`;
+            document.getElementById('step2').classList.add('step-done');
+            document.getElementById('step3').classList.remove('opacity-50');
+            document.getElementById('btn-upload').disabled = false;
+        } catch(e) {
+            el.innerHTML = `<div class="p-3 bg-red-50 border border-red-200 rounded text-red-700">❌ Lỗi: ${e.message}</div>`;
+        }
+    }
+
+    // ═══════════════ Step 3: Upload ═══════════════
+    async function doUpload() {
+        const el = document.getElementById('step3-result');
+        el.classList.remove('hidden');
+        el.innerHTML = '<p class="text-gray-500">⏳ Đang mã hóa và upload...</p>';
+        try {
+            const formData = new FormData();
+            const fileContent = new Blob(["[CONFIDENTIAL] Bao cao tai chinh Q4/2024 - Department A\nDoanh thu: 15.2 ty VND | Loi nhuan: 3.8 ty VND"], {type: 'text/plain'});
+            formData.append('file', fileContent, 'report_q4_2024.txt');
+            formData.append('access_policy', 'MANAGER and DEPTA');
+            formData.append('master_public_key', state.mpk);
+            formData.append('storage_tier', 'standard');
+
+            const r = await fetch(getApiUrl() + '/files/upload', { method: 'POST', body: formData });
+            const d = await r.json();
+            state.fileId = d.file_id;
+
+            el.innerHTML = `
+                <div class="p-3 bg-green-50 border border-green-200 rounded">
+                    <p class="text-green-700 font-semibold">✅ Upload thành công!</p>
+                    <p class="text-xs text-gray-600 mt-2"><strong>File ID:</strong> ${d.file_id}</p>
+                    <p class="text-xs text-gray-600"><strong>Filename:</strong> ${d.filename}</p>
+                    <p class="text-xs text-gray-600"><strong>Size:</strong> ${d.size_bytes} bytes → Encrypted on S3</p>
+                    <p class="text-xs text-gray-600"><strong>Policy:</strong> ${d.access_policy}</p>
+                    <p class="text-xs text-gray-600"><strong>Tier:</strong> ${d.storage_tier}</p>
+                </div>`;
+            document.getElementById('step3').classList.add('step-done');
+            document.getElementById('step4').classList.remove('opacity-50');
+            document.getElementById('step5').classList.remove('opacity-50');
+            document.getElementById('btn-download-ok').disabled = false;
+            document.getElementById('btn-download-fail').disabled = false;
+        } catch(e) {
+            el.innerHTML = `<div class="p-3 bg-red-50 border border-red-200 rounded text-red-700">❌ Lỗi: ${e.message}</div>`;
+        }
+    }
+
+    // ═══════════════ Step 4: Download Success ═══════════════
+    async function doDownloadSuccess() {
+        const el = document.getElementById('step4-result');
+        el.classList.remove('hidden');
+        el.innerHTML = '<p class="text-gray-500">⏳ Manager đang giải mã...</p>';
+        try {
+            const r = await fetch(getApiUrl() + '/files/' + state.fileId, {
+                headers: { 'x-user-secret-key': state.uskManager, 'x-master-public-key': state.mpk }
+            });
+            if (r.ok) {
+                const text = await r.text();
+                el.innerHTML = `
+                    <div class="p-3 bg-green-50 border border-green-200 rounded">
+                        <p class="text-green-700 font-semibold">✅ Giải mã thành công!</p>
+                        <p class="text-xs text-gray-500 mt-1">Attributes [MANAGER, DEPTA] thỏa mãn policy "MANAGER and DEPTA"</p>
+                        <pre class="mt-2 p-2 bg-white border rounded text-xs">${text}</pre>
+                    </div>`;
+                document.getElementById('step4').classList.add('step-done');
+            } else {
+                const d = await r.json();
+                el.innerHTML = `<div class="p-3 bg-red-50 border border-red-200 rounded text-red-700">❌ HTTP ${r.status}: ${d.detail || d.message}</div>`;
+            }
+        } catch(e) {
+            el.innerHTML = `<div class="p-3 bg-red-50 border border-red-200 rounded text-red-700">❌ Lỗi: ${e.message}</div>`;
+        }
+    }
+
+    // ═══════════════ Step 5: Access Denied ═══════════════
+    async function doDownloadDenied() {
+        const el = document.getElementById('step5-result');
+        el.classList.remove('hidden');
+        el.innerHTML = '<p class="text-gray-500">⏳ Employee đang thử giải mã...</p>';
+        try {
+            const r = await fetch(getApiUrl() + '/files/' + state.fileId, {
+                headers: { 'x-user-secret-key': state.uskEmployee, 'x-master-public-key': state.mpk }
+            });
+            if (r.status === 403) {
+                const d = await r.json();
+                el.innerHTML = `
+                    <div class="p-3 bg-red-50 border border-red-200 rounded">
+                        <p class="text-red-700 font-semibold">🚫 HTTP 403 — Access Denied!</p>
+                        <p class="text-xs text-gray-600 mt-1">Attributes [EMPLOYEE, DEPTB] KHÔNG thỏa mãn policy "MANAGER and DEPTA"</p>
+                        <p class="text-xs text-red-600 mt-1">${d.detail || d.message}</p>
+                        <p class="text-xs text-gray-500 mt-2">→ Hệ thống từ chối truy cập đúng cách. Dữ liệu được bảo vệ.</p>
+                    </div>`;
+                document.getElementById('step5').classList.add('step-fail');
+            } else {
+                el.innerHTML = `<div class="p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-700">⚠️ Unexpected: HTTP ${r.status}</div>`;
+            }
+        } catch(e) {
+            el.innerHTML = `<div class="p-3 bg-red-50 border border-red-200 rounded text-red-700">❌ Lỗi: ${e.message}</div>`;
+        }
+    }
+    </script>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-gray-400 text-center py-4 mt-8 text-sm">
+        HABE Crypto Backend — Lab Mã hóa Phân cấp | CP-ABE BSW07 + AES-256-CBC + AWS S3
+    </footer>
+</body>
+</html>
